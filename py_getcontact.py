@@ -5,5 +5,8 @@ import os, sys
 imagepath = '../raw/*.png'
 
 files = os.listdir()
-print(files)
+# print(files)
+print(files[1])
 # %%
+
+# test on local
