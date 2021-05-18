@@ -1,11 +1,11 @@
-function calForce(matpath, outdir, radius_ratio, tF1, tF2, tF3, tF4) 
-% matpath='../s1/mat/1_086g.mat';
-% outdir='../s2/';
-% radius_ratio=0.47;
-% tF1=0.3;tF2=0.6;tF3=0.9;tF4=1.2; 
+% function calForce(matpath, outdir, radius_ratio, tF1, tF2, tF3, tF4) 
+matpath='../s1_1set/mat/*.mat';
+outdir='../s2_1set/';
+radius_ratio=0.40;
+tF1=0.2;tF2=0.75;tF3=1.0;tF4=2.0; 
 
     maskradius2pxsize = radius_ratio;%
-    tF=[tF1, tF2, tF3, tF4];
+    tF=[tF2,tF3];
     ntF=length(tF); tS=zeros(ntF^5,5);
     directory = matpath(1:max(strfind(matpath, '/')));
     matname = matpath(max(strfind(matpath, '/'))+1:end);
@@ -21,7 +21,7 @@ function calForce(matpath, outdir, radius_ratio, tF1, tF2, tF3, tF4)
 
     scaling = 1; %scale the image by this factor before doing the fit
     verbose = true; 
-    fitoptions = optimoptions('lsqnonlin','Algorithm','levenberg-marquardt','MaxIter',100,'MaxFunEvals',400,'TolFun',0.01,'Display','final-detailed');
+    fitoptions = optimoptions('lsqnonlin','Algorithm','levenberg-marquardt','MaxIter',100,'MaxFunEvals',400,'TolFun',0.005,'Display','final-detailed');
 
     nFrames = length(files); %how many files are we processing ?
     for frame = 1:nFrames %loop over these frames 
@@ -48,9 +48,13 @@ function calForce(matpath, outdir, radius_ratio, tF1, tF2, tF3, tF4)
                     rm = particle(n).rm;
                     template = particle(n).forceImage;
                     template = imresize(template,scaling);  
-    %                 se = strel('disk', 2);
-    %                 template = imopen(template, se);
-                    template = imadjust(template);
+%                     se = strel('disk', 2);
+%                     sigma = 2;
+%                     template = template.*(template > 0.1);                    
+                    template = imadjust(template, stretchlim(template, [0.02,0.98]));
+%                     template = imerode(template, se);
+%                     template = imdilate(template, se);
+%                     template = imgaussfilt(template, sigma);
     %                 template = imadjust(template, [0 0.85]);
                     px = size(template,1); %size of the force image
 
@@ -101,17 +105,17 @@ function calForce(matpath, outdir, radius_ratio, tF1, tF2, tF3, tF4)
                         beta = particle(n).betas;
     %                     [alphas,forces] = forceBalance(forces,alphas,beta); %apply force balance to the initial guesses
 
-    %                     cx=px/2;cy=px/2;ix=px;iy=px;r=maskradius2pxsize*px; %create a circular mask
-    %                     [x,y]=meshgrid(-(cx-1):(ix-cx),-(cy-1):(iy-cy));
-    %                     c_mask=((x.^2+y.^2)<=r^2);   
-
-                        cx=px/2;cy=px/2;ix=px;iy=px;
-                        r = particle(n).r;
-                        maskR = maskradius2pxsize*r;
-                        xyr=[(r-maskR)*cos(beta)', (r-maskR)*sin(beta)', zeros(z,1)+(maskR-5)];
-                        xyr=permute(xyr, [3, 2, 1]);
+                        cx=px/2;cy=px/2;ix=px;iy=px;r=maskradius2pxsize*px; %create a circular mask
                         [x,y]=meshgrid(-(cx-1):(ix-cx),-(cy-1):(iy-cy));
-                        c_mask=any(hypot(x-xyr(1,1,:), y-xyr(1,2,:)) <= xyr(1,3,:),3);
+                        c_mask=((x.^2+y.^2)<=r^2-1);   
+
+                        % cx=px/2;cy=px/2;ix=px;iy=px;
+                        % r = particle(n).r;
+                        % maskR = maskradius2pxsize*r;
+                        % xyr=[(r-maskR)*cos(beta)', (r-maskR)*sin(beta)', zeros(z,1)+(maskR-5)];
+                        % xyr=permute(xyr, [3, 2, 1]);
+                        % [x,y]=meshgrid(-(cx-1):(ix-cx),-(cy-1):(iy-cy));
+                        % c_mask=any(hypot(x-xyr(1,1,:), y-xyr(1,2,:)) <= xyr(1,3,:),3);
 
                         func = @(par) joForceImg(z, par(1:z),par(z+1:z+z), beta(1:z), fsigma, rm, px, verbose); %+par(2*z+1); %this is the function I want to fit (i.e. synthetic stres image), the fitting paramters are in vector par
                         err = @(par) real(sum(sum( ( c_mask.*(template-func(par)).^2) ))); %BUG: for some reason I sometimes get imaginary results, this should not happen
@@ -126,10 +130,14 @@ function calForce(matpath, outdir, radius_ratio, tF1, tF2, tF3, tF4)
                         fitError = err(p);
     %                     errstore = [errstore, fitError];
                         imgFit = joForceImg(z, forces, alphas, beta, fsigma, rm, px*(1/scaling), verbose); %generate an image with the fitted parameters
+                        [gx,gy] = gradient(c_mask.*imgFit);
+                        g2 = (gx.^2 + gy.^2);
                         [alphas,forces] = forceBalance(forces,alphas,beta);
                         forces = abs(forces);
                         pres(n).NumComb = k;                    
                         pres(n).fitError = fitError; %store the new information into a new particle vector 
+                        pres(n).sImgg2 = sum(sum(g2));
+                        pres(n).betas = beta;
                         pres(n).forces = forces;
                         pres(n).alphas= alphas;
                         pres(n).synthImg = imgFit;
@@ -147,6 +155,7 @@ function calForce(matpath, outdir, radius_ratio, tF1, tF2, tF3, tF4)
                         presAll(n,k).z = pres1.z;
                         presAll(n,k).f = pres1.f;
                         presAll(n,k).g2 = pres1.g2;
+                        presAll(n,k).sImgg2 = pres1.sImgg2;
                         presAll(n,k).betas = pres1.betas;
                         presAll(n,k).forces = forces;
                         presAll(n,k).alphas= alphas;
@@ -163,6 +172,7 @@ function calForce(matpath, outdir, radius_ratio, tF1, tF2, tF3, tF4)
                         pCompare(k).alphas = alphas;
                         pCompare(k).maskRsize = maskradius2pxsize;
                         pCompare(k).synthImg = imgFit;
+                        pCompare(k).sImgg2 = pres1.sImgg2;
 
                         imwrite(template, [dirname3, 'img/raw.png']);
                         imwrite(imgFit, [dirname3, 'img/syn.png']);                       
@@ -173,6 +183,7 @@ function calForce(matpath, outdir, radius_ratio, tF1, tF2, tF3, tF4)
                     end
                     writetable(struct2table(rmfield(pCompare,'synthImg')), [dirname2, 'pixelError.csv']);
                     [~, minI] = min([pCompare.fitError]);
+                    pres(n).sImgg2 = pCompare(minI).sImgg2;
                     pres(n).forces = pCompare(minI).forces;
                     pres(n).alphas = pCompare(minI).alphas;
                     pres(n).NumComb = pCompare(minI).NumComb;                
@@ -187,10 +198,22 @@ function calForce(matpath, outdir, radius_ratio, tF1, tF2, tF3, tF4)
         end
         save([[outdir, sprintf('maskR%1.2f_mat/', maskradius2pxsize)], files(frame).name(1:end-4), '.mat'],'pres');
         
+        if ~exist([outdir, sprintf('maskR%1.2f_csv/', maskradius2pxsize)], 'dir')
+            mkdir([outdir, sprintf('maskR%1.2f_csv/', maskradius2pxsize)])
+        end       
+        if (isfield(pres,'synthImg') == 1)
+            writetable(struct2table(rmfield(pres,{'synthImg', 'forceImage'})), [outdir, sprintf('maskR%1.2f_csv/', maskradius2pxsize),files(frame).name(1:end-4), '.csv']);
+        end
         if ~exist([outdir, sprintf('maskR%1.2f_matAll/', maskradius2pxsize)], 'dir')
             mkdir([outdir, sprintf('maskR%1.2f_matAll/', maskradius2pxsize)])
         end
         save([[outdir, sprintf('maskR%1.2f_matAll/', maskradius2pxsize)], files(frame).name(1:end-4), '.mat'],'presAll');
         
+%         if ~exist([outdir, sprintf('maskR%1.2f_csvAll/', maskradius2pxsize)], 'dir')
+%             mkdir([outdir, sprintf('maskR%1.2f_csvAll/', maskradius2pxsize)])
+%         end   
+%         if (isfield(presAll,'synthImg')== 1)
+%             writetable(struct2table(rmfield(presAll,{'synthImg', 'forceImage'})), [outdir, sprintf('maskR%1.2f_csv/', maskradius2pxsize),files(frame).name(1:end-4), '.csv']);        
+%         end
     end
-end
+% end

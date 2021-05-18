@@ -1,12 +1,12 @@
 % function calForce(matpath, outdir, radius_ratio, tF1, tF2, tF3, tF4) 
-matpath='../s1/mat_temp/213.mat';
-ID=25;
+matpath='../s1/mat/137.mat';
+ID=19;
 outdir='../s2_eachDisk/';
 radius_ratio=0.50;
-tF1=0.6;tF2=3.2;tF3=4.3;tF4=4.0; 
+tF1=3.2;tF2=4.4;tF3=5.9;tF4=4.0; 
 
     maskradius2pxsize = radius_ratio;%
-    tF=[tF2,tF3];
+    tF=[tF1,tF2,tF3];
     ntF=length(tF); tS=zeros(ntF^5,5);
     directory = matpath(1:max(strfind(matpath, '/')));
     matname = matpath(max(strfind(matpath, '/'))+1:end);
@@ -65,7 +65,10 @@ tF1=0.6;tF2=3.2;tF3=4.3;tF4=4.0;
                     end
 
                     z = particle(n).z; NumOfCombination=ntF^z;  % disp(NumOfCombination); return;
-                    forces = zeros(z,1);
+%                     z = 2; NumOfCombination=ntF^z;
+%                     particle(n).contactG2s([1,2]) = [];
+%                     particle(n).betas([1,2]) = [];
+                    forces = zeros(z,1);                    
                     cg2s = sum(particle(n).contactG2s);
                     dirname2 = [dirname1, sprintf('p%02d/', n)];
                     if ~exist(dirname2, 'dir')
@@ -92,12 +95,12 @@ tF1=0.6;tF2=3.2;tF3=4.3;tF4=4.0;
                         if ~exist(dirname3, 'dir') mkdir(dirname3); end
                         if ~exist([dirname3, 'img/'], 'dir') mkdir([dirname3, 'img/']); end
                         if ~exist([dirname3, 'csv/'], 'dir') mkdir([dirname3, 'csv/']); end 
-                        if ~exist([dirname3, 'mat/'], 'dir') mkdir([dirname3, 'mat/']); end
-
+                        if ~exist([dirname3, 'mat/'], 'dir') mkdir([dirname3, 'mat/']); end           
+                        
                         for i=1:z
                             forces(i) = tS(k,i)*2*particle(n).f*particle(n).contactG2s(i)/cg2s;
                         end
-
+                        
                         alphas = zeros(z,1); %Initial guesses for the angles of attack of the forces
                         beta = particle(n).betas;
     %                     [alphas,forces] = forceBalance(forces,alphas,beta); %apply force balance to the initial guesses
@@ -119,7 +122,7 @@ tF1=0.6;tF2=3.2;tF3=4.3;tF4=4.0;
     %                     err = @(par) 1-ssim(c_mask.*(template), c_mask.*(func(par)));
                         p0(1:z) = forces; %Set up initial guesses
                         p0(z+1:2*z) = alphas;
-
+                        
                         p=lsqnonlin(err,p0,[],[],fitoptions);
 
                         forces = p(1:z); %get back the result from fitting

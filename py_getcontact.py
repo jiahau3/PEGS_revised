@@ -8,5 +8,3 @@ files = os.listdir()
 # print(files)
 print(files[1])
 # %%
-
-# test on local

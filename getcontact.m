@@ -8,7 +8,7 @@
 
 % last edit on 2018/08/09 by Joshua Miller (jsmille9@ncsu.edu)
 
-function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, conR, cG2Thrsd, ctrstL, ctrstH)
+% function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, conR, cG2Thrsd, ctrstL, ctrstH)
 
     % close all % Housekeeping
     % clear all % Housekeeping
@@ -19,24 +19,24 @@ function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, c
 
     verbose = true; %Generates lots of plots showing results
 
-% imagepath = '../raw/00200.png';
-% centerdir = '../center/txt/';
-% outputdir = '../s1/'; 
-% MeterPerpx = 0.008 / 98;
-% g2cal = 40;
-% fsigma = 228; 
-% dtol = 10;     
-% CR = 15; 
-% contactG2Threshold = 0.010*CR^2; 
-% contrast_percent = [0.02, 0.98];
+imagepath = '../raw/172.png';
+centerdir = '../center/txt/';
+outputdir = '../s1_1set/'; 
+MeterPerpx = 0.008 / 98;
+g2cal = 3;
+fsigma = 290; 
+dtol = 4;     
+CR = 13; 
+contactG2Threshold = 0.20; 
+contrast_percent = [0.005, 0.995];
     
-    MeterPerpx = Dm / Dpx;
-    g2cal = g2guess; %Calibration Value for the g^2 method
-    fsigma = FS; %photoelastic stress coefficient
-    dtol = DT; % How far away can the outlines of 2 particles be to still be considered Neighbours
-    CR = conR; %radius around a contactact point that is checked for contact validation
-    contactG2Threshold = cG2Thrsd*CR^2; %sum of g2 in a contact area larger than this determines a valid contact
-    contrast_percent = [ctrstL, ctrstH];
+%     MeterPerpx = Dm / Dpx;
+%     g2cal = g2guess; %Calibration Value for the g^2 method
+%     fsigma = FS; %photoelastic stress coefficient
+%     dtol = DT; % How far away can the outlines of 2 particles be to still be considered Neighbours
+%     CR = conR; %radius around a contactact point that is checked for contact validation
+%     contactG2Threshold = cG2Thrsd*CR^2; %sum of g2 in a contact area larger than this determines a valid contact
+%     contrast_percent = [ctrstL, ctrstH];
     
 %     if nargin > 3
 %         MeterPerpx = Dm / Dpx;
@@ -146,9 +146,9 @@ function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, c
 
         Gimg = im2double(Gimg);
         Rimg = im2double(Rimg);
-        Gimg = Gimg-0.30*Rimg;
-        Gimg = Gimg.*(Gimg > 0);
-        Gimg = imadjust(Gimg,stretchlim(Gimg,[contrast_percent(1) contrast_percent(2)]));
+%         Gimg = Gimg-0.30*Rimg;
+%         Gimg = Gimg.*(Gimg > 0);
+        % Gimg = imadjust(Gimg,stretchlim(Gimg,[contrast_percent(1) contrast_percent(2)]));
     %     Rimg = imadjust(Rimg,[0.06 0.6],[]);
     %     Rimg = imgaussfilt(Rimg,0.5);
     %     Rimg = im2bw(Rimg, 0.6);
@@ -184,7 +184,7 @@ function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, c
             pData(YoutB,:) = [];
             N = size(pData,1);
             clear particle;
-            particle(1:N) = struct('id',0,'x',0,'y',0,'r',0,'rm',0,'color','','fsigma',0,'z',0,'f',0,'g2',0,'forces',[],'betas',[],'alphas',[],'neighbours',[],'contactG2s',[],'forceImage',[]);
+            particle(1:N) = struct('id',0,'x',0,'y',0,'r',0,'rm',0,'color','','fsigma',0,'z',0,'f',0,'g2',0,'sImgg2',0,'forces',[],'betas',[],'alphas',[],'neighbours',[],'contactG2s',[],'forceImage',[]);
             for n=1:N %Bookkeeping
                 particle(n).id= n;
                 particle(n).x = pData(n,1); %-xoffset;
@@ -247,18 +247,28 @@ function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, c
             cropYstop = round(particle(n).y-r)+ size(mask1,2)-1;
             cimg = im2double(Gimg(cropYstart:cropYstop, cropXstart:cropXstop));
             particleImg = cimg.*mask1;
-            se = strel('disk', 1);
-            particleImg = imdilate(particleImg, se);
             particle(n).forceImage=particleImg;
 
             %create a circular mask with a radius that is one pixel smaller
             %for cropping out the relevant gradient
 
-            mask2 = double(sqrt(mask) <= r-1);
+            mask2 = double(sqrt(mask) <= (r-0.2*r)-1);
 
             %Compute G^2 for each particle
+            se = strel('disk', 2);            
+            sigma = 2;
+%             particleImg = particleImg - 0.4;
+%             particleImg = imerode(particleImg, se);
+            particleImg = imdilate(particleImg.*mask2, se);
+            particleImg = imgaussfilt(particleImg, sigma);
+%             particleImg = imerode(particleImg, se);
+%             particleImg = imadjust(particleImg);
+%             particleImg = imgaussfilt(particleImg, 2);
+%             particleImg = imadjust(particleImg, stretchlim(particleImg, [0.1,0.9]));
             [gx,gy] = gradient(particleImg);
-            g2 = (gx.^2 + gy.^2).*mask2;
+            g2 = (gx.^2 + gy.^2);
+%             [gx,gy] = imgradient(particleImg);
+%             g2 = (gx.^2 + gy.^2);
             particle(n).g2 = sum(sum(g2));
             particle(n).f = particle(n).g2/g2cal;
         end
@@ -268,6 +278,35 @@ function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, c
             particle = PeGSNeighbourFind(Gimg, contactG2Threshold, dtol, CR, verbose, particle);
 
         end
+        
+%         beta = particle(n).betas;
+
+        
+%         for n=1:N
+%             px = size(particle(n).forceImage,1);
+%             cx=px/2;cy=px/2;ix=px;iy=px;
+%             r = particle(n).r;
+%             maskR = 0.5*r;
+%             xyr=[(r-maskR)*cos(beta)', (r-maskR)*sin(beta)', zeros(z,1)+(maskR-maskR*0.2)];
+%             xyr=permute(xyr, [3, 2, 1]);
+%             [x,y]=meshgrid(-(cx-1):(ix-cx),-(cy-1):(iy-cy));
+%             mask2=any(hypot(x-xyr(1,1,:), y-xyr(1,2,:)) <= xyr(1,3,:),3);
+%             
+%             se = strel('disk', 2);            
+%             sigma = 2;
+%             particleImg = imdilate(particleImg.*mask2, se);
+%             particleImg = imgaussfilt(particleImg, sigma);
+% %             particleImg = imerode(particleImg, se);
+% %             particleImg = imadjust(particleImg);
+% %             particleImg = imgaussfilt(particleImg, 2);
+% %             particleImg = imadjust(particleImg, stretchlim(particleImg, [0.1,0.9]));
+%             [gx,gy] = gradient(particleImg);
+%             g2 = (gx.^2 + gy.^2);
+% %             [gx,gy] = imgradient(particleImg);
+% %             g2 = (gx.^2 + gy.^2);
+%             particle(n).g2 = sum(sum(g2));
+%             particle(n).f = particle(n).g2/g2cal;            
+%         end
 
         if ~exist([outputdir, 'Gcontact/'], 'dir')
             mkdir([outputdir, 'Gcontact/']);
@@ -314,6 +353,6 @@ function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, c
             mkdir([outputdir, 'csv/']);
         end
         save([[outputdir, 'mat/'], files(frame).name(1:end-4),'.mat'],'particle');
-        writetable(struct2table(rmfield(particle, 'forceImage')), [[outputdir, 'csv/'], files(frame).name(1:end-4),'.csv']);
+        writetable(struct2table(rmfield(particle, 'forceImage'),'AsArray',true), [[outputdir, 'csv/'], files(frame).name(1:end-4),'.csv']);
     end
-end
+% end

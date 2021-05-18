@@ -15,21 +15,22 @@
 
 
 
-function result = stress_calc(xxi, xxj, z, f, alpha, beta, fsigma, rm, E, nu)
+function result = stress_calc(xxi, xxj, z, f, alpha, beta, fsigma, rm, E, nu, thickness)
 
     % beta = -beta+pi/2;
     pioverfsigma = pi/(fsigma);
     oneoverpirm  = 1./(pi*rm);
     twooverpi    = 2./pi;
 
-    G = E/2*(1+nu);
+    G = E/2/(1+nu);
 
     sigmaxx=0;
     sigmayy=0;
     sigmaxy=0;
+    sr=0;
     %double aa,a,b,b2,x1,y1,x2,y2,ch0,ch1,chn,costh1,r10,r11,r1n,th1,s1, s2,sr,th; %temporary
     for k=1:z
-        b   = -beta(k)+pi*3/2;         %rotate pi/2, to match input image     
+        b   = beta(k)+pi/2;        %rotate pi/2, to match input image     
         a   = alpha(k);
         if (a<0) 
            b2 = b+(pi+2*a);
@@ -48,6 +49,9 @@ function result = stress_calc(xxi, xxj, z, f, alpha, beta, fsigma, rm, E, nu)
         r10 = xxi - x1;             % r vector x coord
         r11 =-xxj - y1;             % r vector y coord
         r1n = sqrt(r10^2+r11^2);
+        if (r1n < 1e-6)
+          r1n = 1e-6;
+        end
         costh1 = (r10*ch0+r11*ch1)/r1n;
         if (r11*ch0>r10*ch1) % important!
             signth =  1;
@@ -55,17 +59,21 @@ function result = stress_calc(xxi, xxj, z, f, alpha, beta, fsigma, rm, E, nu)
             signth = -1;
         end 
         th1    = signth*acos(costh1);     %faster than cos(asin(stuff));
-        s2  = -(f(k)*oneoverpirm)*(-sin(a)) ; %uniform compression from boundary, sin(pi-a) = -sin(a)
-        s1  = -(f(k)*twooverpi)/(r1n)*costh1;
-        sr  = s1-s2;
+        s2  = (f(k)/thickness*oneoverpirm)*(cos(a)) ; %uniform compression from boundary, sin(pi-a) = -sin(a)
+        s1  = -(f(k)/thickness*twooverpi)/(r1n)*costh1;
+        sr  = s1+s2;
         th  = th1-beta(k)-alpha(k);              %rotate coordinates
-        sigmaxx = sigmaxx + sr*((sin(th))^2);
-        sigmayy = sigmayy + sr*((cos(th))^2);
-        sigmaxy = sigmaxy + 0.5*s1*(sin(2*th));% + s2;
+        sigmaxx = sigmaxx + sr*((cos(th))^2);
+        sigmayy = sigmayy + sr*((sin(th))^2);
+        sigmaxy = sigmaxy - 0.5*sr*(sin(2*th));% + s2;
    end %end of k loop over beta, alpha
    % aa     = real(sqrt((sigmaxx-sigmayy)^2+4*(sigmaxy)^2));
    % result = (sin(pioverfsigma*aa))^2;  %wrap    = sin(2*pi*t/fsigma*a).^2;
-   result = real(1/(2*E)*(sigmaxx^2 + sigmayy^2) - nu/E*(sigmaxx*sigmayy) + 1/(2*G)*sigmaxy^2);
+    result = real(1/(2*E)*(sigmaxx^2 + sigmayy^2) - nu/E*(sigmaxx*sigmayy) + 1/(2*G)*sigmaxy^2);
+    % if (result > 1e9)
+      % result = 0;
+    % end
+   % result = sqrt(sr^2);
    if (isnan(result)) %for some reason result sometimes gets to be NAN, not sure why this happens
        result = 0; %temproary fix is to set it zero then
    end 

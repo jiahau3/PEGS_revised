@@ -2,6 +2,8 @@ function [particle] = PeGSNeighbourFind(Gimg, contactG2Threshold, dtol, CR, verb
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 
+shift = 10;
+
 N = length(particle);
 
 xmat = zeros([N,1]);
@@ -43,7 +45,7 @@ for l = 1:length(f1)
     contactXp2 = x1 + (r1 + CR + dmat(f1(l),f2(l)) - rmat(f1(l),f2(l))) * cos(atan2(y2-y1,x2-x1));
     contactYp2 = y1 + (r1 + CR + dmat(f1(l),f2(l)) - rmat(f1(l),f2(l))) * sin(atan2(y2-y1,x2-x1));
     
-    contactImg = im2double(imcrop(Gimg,[contactXp1-CR contactYp1-CR CR*2 CR*2]));
+    contactImg = im2double(imcrop(Gimg,[contactXp1-CR-shift*cos(atan2(y2-y1,x2-x1)) contactYp1-CR-shift*sin(atan2(y2-y1,x2-x1)) CR*2 CR*2]));
     contactImg = contactImg.*mask;
     
     [gx,gy] = gradient(contactImg);
@@ -51,7 +53,7 @@ for l = 1:length(f1)
     contactG2p1 = sum(sum(g2));
     contactIp1 = sum(sum(contactImg));
     
-    contactImg = im2double(imcrop(Gimg,[contactXp2-CR contactYp2-CR CR*2 CR*2]));
+    contactImg = im2double(imcrop(Gimg,[contactXp2+CR+shift*cos(atan2(y2-y1,x2-x1)) contactYp2+CR+shift*sin(atan2(y2-y1,x2-x1)) CR*2 CR*2]));
     contactImg = contactImg.*mask;
     
     [gx,gy] = gradient(contactImg);
@@ -66,9 +68,10 @@ for l = 1:length(f1)
         %Plot contact area
         if (verbose)
             % display(['contact found between particles ',num2str(f1(l)),' and ',num2str(f2(l))]);
-            viscircles([contactXp1; contactYp1]', CR,'LineWidth', 1,'EdgeColor','y');
-            viscircles([contactXp2; contactYp2]', CR,'LineWidth', 1,'EdgeColor','y');
-            text(contactXp1, contactYp1,num2str(contactG2p1),'FontSize',6,'Color','y');
+            viscircles([contactXp1-shift*cos(atan2(y2-y1,x2-x1)); contactYp1-shift*sin(atan2(y2-y1,x2-x1))]', CR,'LineWidth', 1,'EdgeColor','y');
+            viscircles([contactXp2+shift*cos(atan2(y2-y1,x2-x1)); contactYp2+shift*sin(atan2(y2-y1,x2-x1))]', CR,'LineWidth', 1,'EdgeColor','y');
+            text(contactXp1-shift*cos(atan2(y2-y1,x2-x1)), contactYp1-shift*sin(atan2(y2-y1,x2-x1)),sprintf("%1.2f",contactG2p1),'FontSize',6,'Color','y');
+            text(contactXp2+shift*cos(atan2(y2-y1,x2-x1)), contactYp2+shift*sin(atan2(y2-y1,x2-x1)),sprintf("%1.2f",contactG2p2),'FontSize',6,'Color','y');
             %drawnow;
         end
         %this is a valid contact, remember it
@@ -96,10 +99,10 @@ leftwall = min(circs(:,2) - circs(:,3)); %Finds our theorhetical wall locations
 topwall = min(circs(:,1) - circs(:,3));
 bottomwall = max(circs(:,1) + circs(:,3));
 
-rwi = find(circs(:,2) + circs(:,3) + dtol*1.5 >= rightwall);
-lwi = find(circs(:,2) - circs(:,3) - dtol*1.5 <= leftwall); %Indexes based on particles that would be considered to be touching the wall
-bwi = find(circs(:,1) + circs(:,3) + dtol*1.5 >= bottomwall);
-twi = find(circs(:,1) - circs(:,3) - dtol*1.5 <= topwall);
+rwi = find(circs(:,2) + circs(:,3) + dtol*4.0 >= rightwall);
+lwi = find(circs(:,2) - circs(:,3) - dtol*4.0 <= leftwall); %Indexes based on particles that would be considered to be touching the wall
+bwi = find(circs(:,1) + circs(:,3) + dtol*4.0 >= bottomwall);
+twi = find(circs(:,1) - circs(:,3) - dtol*4.0 <= topwall);
 
 for l = 1:length(lwi) %Runs through each index to check for contacts via gradients
     x = circs(lwi(l),2);
@@ -109,7 +112,7 @@ for l = 1:length(lwi) %Runs through each index to check for contacts via gradien
     contactX = x-(r-CR);
     contactY = y;
     
-    contactImg = im2double(imcrop(Gimg,[contactX-CR contactY-CR CR*2 CR*2]));
+    contactImg = im2double(imcrop(Gimg,[contactX-CR+shift contactY-CR CR*2 CR*2]));
     contactImg = contactImg.*mask;
     
     [gx,gy] = gradient(contactImg);
@@ -121,8 +124,8 @@ for l = 1:length(lwi) %Runs through each index to check for contacts via gradien
         %if(cI > contactIThreshold)
         %this is a valid contact, remember it
         if(verbose)
-            text(contactX,contactY,num2str(contactG2),'FontSize',6,'Color','y');
-            viscircles([contactX; contactY]', CR,'LineWidth', 1,'EdgeColor','y');
+            text(contactX+shift,contactY,sprintf("%1.2f",contactG2),'FontSize',6,'Color','y');
+            viscircles([contactX+shift; contactY]', CR,'LineWidth', 1,'EdgeColor','y');
         end
         particle(lwi(l)).z= particle(lwi(l)).z +1; %increase coordination number
         particle(lwi(l)).contactG2s(particle(lwi(l)).z)=contactG2;
@@ -140,7 +143,7 @@ for l = 1:length(rwi)
     contactX = x+(r-CR);
     contactY = y;
     
-    contactImg = im2double(imcrop(Gimg,[contactX-CR contactY-CR CR*2 CR*2]));
+    contactImg = im2double(imcrop(Gimg,[contactX-CR-shift contactY-CR CR*2 CR*2]));
     contactImg = contactImg.*mask;
     
     [gx,gy] = gradient(contactImg);
@@ -152,8 +155,8 @@ for l = 1:length(rwi)
         %if(cI > contactIThreshold)
         %this is a valid contact, remember it
         if(verbose)
-            text(contactX,contactY,num2str(contactG2),'FontSize',6,'Color','y');
-            viscircles([contactX; contactY]', CR,'LineWidth', 1,'EdgeColor','y');
+            text(contactX-shift,contactY,sprintf("%1.2f",contactG2),'FontSize',6,'Color','y');
+            viscircles([contactX-shift; contactY]', CR,'LineWidth', 1,'EdgeColor','y');
         end
         particle(rwi(l)).z= particle(rwi(l)).z +1; %increase coordination number
         particle(rwi(l)).contactG2s(particle(rwi(l)).z)=contactG2;
@@ -171,7 +174,7 @@ for l = 1:length(twi)
     contactX = x;
     contactY = y-(r-CR);
     
-    contactImg = im2double(imcrop(Gimg,[contactX-CR contactY-CR CR*2 CR*2]));
+    contactImg = im2double(imcrop(Gimg,[contactX-CR contactY-CR+shift CR*2 CR*2]));
     contactImg = contactImg.*mask;
     
     [gx,gy] = gradient(contactImg);
@@ -183,8 +186,8 @@ for l = 1:length(twi)
         %if(cI > contactIThreshold)
         %this is a valid contact, remember it
         if(verbose)
-            text(contactX,contactY,num2str(contactG2),'FontSize',6,'Color','y');
-            viscircles([contactX; contactY]', CR,'LineWidth', 1,'EdgeColor','y');
+            text(contactX,contactY+shift,sprintf("%1.2f",contactG2),'FontSize',6,'Color','y');
+            viscircles([contactX; contactY+shift]', CR,'LineWidth', 1,'EdgeColor','y');
         end
         particle(twi(l)).z= particle(twi(l)).z +1; %increase coordination number
         particle(twi(l)).contactG2s(particle(twi(l)).z)=contactG2;
@@ -202,7 +205,7 @@ for l = 1:length(bwi)
     contactX = x;
     contactY = y+(r-CR);
     
-    contactImg = im2double(imcrop(Gimg,[contactX-CR contactY-CR CR*2 CR*2]));
+    contactImg = im2double(imcrop(Gimg,[contactX-CR contactY-CR-shift CR*2 CR*2]));
     contactImg = contactImg.*mask;
     
     [gx,gy] = gradient(contactImg);
@@ -214,8 +217,8 @@ for l = 1:length(bwi)
         %if(cI > contactIThreshold)
         %this is a valid contact, remember it
         if(verbose)
-            text(contactX,contactY,num2str(contactG2),'FontSize',6,'Color','y');
-            viscircles([contactX; contactY]', CR,'LineWidth', 1,'EdgeColor','y');
+            text(contactX,contactY-shift,sprintf("%1.2f",contactG2),'FontSize',6,'Color','y');
+            viscircles([contactX; contactY-shift]', CR,'LineWidth', 1,'EdgeColor','y');
         end
         particle(bwi(l)).z= particle(bwi(l)).z +1; %increase coordination number
         particle(bwi(l)).contactG2s(particle(bwi(l)).z)=contactG2;
