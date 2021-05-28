@@ -3,6 +3,7 @@ function [particle] = PeGSNeighbourFind(Gimg, contactG2Threshold, dtol, CR, verb
 %   Detailed explanation goes here
 
 shift = 10;
+shift4calibration = 50;
 
 N = length(particle);
 
@@ -94,8 +95,8 @@ end
 
 circs = [ymat, xmat, rmats]; %Makes a circs matrix from old matrices
 
-rightwall = max(circs(:,2) + circs(:,3));
-leftwall = min(circs(:,2) - circs(:,3)); %Finds our theorhetical wall locations
+rightwall = max(circs(:,2) + circs(:,3) + shift4calibration);
+leftwall = min(circs(:,2) - circs(:,3) - shift4calibration); %Finds our theorhetical wall locations
 topwall = min(circs(:,1) - circs(:,3));
 bottomwall = max(circs(:,1) + circs(:,3));
 

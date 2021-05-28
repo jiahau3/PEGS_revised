@@ -1,11 +1,28 @@
-% function calForce(matpath, outdir, radius_ratio, tF1, tF2, tF3, tF4) 
-matpath='../s1_1set/mat/*.mat';
-outdir='../s2_1set/';
-radius_ratio=0.40;
-tF1=0.2;tF2=0.75;tF3=1.0;tF4=2.0; 
+function calForce(matpath, outdir, rMask, tF1, tF2, tF3, tF4, g2_cal_a, g2_cal_b, exitX, exitY, D_arch2exit, given_force, calibrate, optimization) 
+% matpath='../s1/mat/*.mat';
+% outdir='../synImg/';
+% rMask=0.45;
+% tF1=1.0;tF2=0.0;tF3=0.0;tF4=0.0;
+% g2_cal_a = 28;
+% g2_cal_b = 53;
+% exitX=457;
+% exitY=380;
+% D_arch2exit = 2800;
+% given_force = 1;
+% calibrate = 1;
+% optimization  = 0;
 
-    maskradius2pxsize = radius_ratio;%
-    tF=[tF2,tF3];
+    
+    tF=[tF1,tF2,tF3,tF4];   
+    if (nnz(tF) == 1)
+        tF = tF1;
+    elseif (nnz(tF) == 2)
+        tF = [tF1, tF2];
+    elseif (nnz(tF) == 3)
+        tF = [tF1,tF2,tF3];
+    else
+        tF=[tF1,tF2,tF3,tF4];
+    end
     ntF=length(tF); tS=zeros(ntF^5,5);
     directory = matpath(1:max(strfind(matpath, '/')));
     matname = matpath(max(strfind(matpath, '/'))+1:end);
@@ -13,8 +30,7 @@ tF1=0.2;tF2=0.75;tF3=1.0;tF4=2.0;
         mkdir(outdir);
     end
     files = dir([directory, matname]); 
-    exit_center = [457 380];
-    D_arch2exit = 280;
+
     
     [~, index] = natsortfiles({files.name}); % Sorting files as increasing number
     files = files(index);
@@ -33,12 +49,12 @@ tF1=0.2;tF2=0.75;tF3=1.0;tF4=2.0;
         presAll(N,ntF) = struct();
         dirname0 = [outdir, files(frame).name(1:end-4),'/'];
         if ~exist(dirname0, 'dir') mkdir(dirname0); end
-        dirname1 = [dirname0, sprintf('maskR_%1.2f/', maskradius2pxsize)];
+        dirname1 = [dirname0, sprintf('maskR_%1.2f/', rMask)];
         if ~exist(dirname1, 'dir') mkdir(dirname1); end
         
 %         disp(['processing file ',fileName, ' containing ' ,num2str(N), ' particles']); %status indicator
-        for n=1:N
-            if sqrt((particle(n).x - exit_center(1))^2 + (particle(n).y - exit_center(2))^2) < D_arch2exit
+        for n=1:N    tF=[tF1,tF2,tF3,tF4];
+            if sqrt((particle(n).x - exitX)^2 + (particle(n).y - exitY)^2) < D_arch2exit
                 clearvars pCompare;
                 clearvars pres1;
     %             disp(['fitting force(s) to particle ',num2str(n)]); %status indicator
@@ -48,14 +64,13 @@ tF1=0.2;tF2=0.75;tF3=1.0;tF4=2.0;
                     rm = particle(n).rm;
                     template = particle(n).forceImage;
                     template = imresize(template,scaling);  
-%                     se = strel('disk', 2);
-%                     sigma = 2;
+                    se = strel('disk', 2);
+                    sigma = 1;
 %                     template = template.*(template > 0.1);                    
-                    template = imadjust(template, stretchlim(template, [0.02,0.98]));
+                    template = imadjust(template, stretchlim(template, [0.05,0.95]));
 %                     template = imerode(template, se);
 %                     template = imdilate(template, se);
-%                     template = imgaussfilt(template, sigma);
-    %                 template = imadjust(template, [0 0.85]);
+                    template = imgaussfilt(template, sigma);
                     px = size(template,1); %size of the force image
 
                     if verbose
@@ -90,6 +105,14 @@ tF1=0.2;tF2=0.75;tF3=1.0;tF4=2.0;
 
                     pCompare(1:NumOfCombination) = struct('NumComb',0,'fitError',0);
                     pres1(1) = struct();
+                    
+                    cx=px/2;cy=px/2;ix=px;iy=px;r=rMask*px; %create a circular mask
+                    [x,y]=meshgrid(-(cx-1):(ix-cx),-(cy-1):(iy-cy));
+                    c_mask=((x.^2+y.^2)<=r^2-1);
+                    [gx1,gy1] = gradient(c_mask.*template);
+                    g21 = (gx1.^2 + gy1.^2);
+                    g2_center = sum(sum(g21));
+                    
                     for k=1:NumOfCombination
                         dirname3 = [dirname2, sprintf('%04d', k), '/'];
                         if ~exist(dirname3, 'dir') mkdir(dirname3); end
@@ -97,17 +120,20 @@ tF1=0.2;tF2=0.75;tF3=1.0;tF4=2.0;
                         if ~exist([dirname3, 'csv/'], 'dir') mkdir([dirname3, 'csv/']); end 
                         if ~exist([dirname3, 'mat/'], 'dir') mkdir([dirname3, 'mat/']); end
 
-                        for i=1:z
-                            forces(i) = tS(k,i)*2*particle(n).f*particle(n).contactG2s(i)/cg2s;
+                       
+                        if (given_force == true)
+                            for i=1:z
+                                forces(i)=str2num(files(frame).name(1:end-4))*9.8e-3;
+                            end
+                        else
+                            for i=1:z
+                                forces(i) = tS(k,i)*(g2_center-g2_cal_b)/g2_cal_a*particle(n).contactG2s(i)/cg2s;
+                            end
                         end
 
                         alphas = zeros(z,1); %Initial guesses for the angles of attack of the forces
                         beta = particle(n).betas;
     %                     [alphas,forces] = forceBalance(forces,alphas,beta); %apply force balance to the initial guesses
-
-                        cx=px/2;cy=px/2;ix=px;iy=px;r=maskradius2pxsize*px; %create a circular mask
-                        [x,y]=meshgrid(-(cx-1):(ix-cx),-(cy-1):(iy-cy));
-                        c_mask=((x.^2+y.^2)<=r^2-1);   
 
                         % cx=px/2;cy=px/2;ix=px;iy=px;
                         % r = particle(n).r;
@@ -122,12 +148,16 @@ tF1=0.2;tF2=0.75;tF3=1.0;tF4=2.0;
     %                     err = @(par) 1-ssim(c_mask.*(template), c_mask.*(func(par)));
                         p0(1:z) = forces; %Set up initial guesses
                         p0(z+1:2*z) = alphas;
+                        if (optimization == true)
+                            p=lsqnonlin(err,p0,[],[],fitoptions);
+                            
+                            forces = p(1:z); %get back the result from fitting
+                            alphas = p(z+1:z+z);
+                            fitError = err(p);
+                        else
+                            fitError = err(p0);
+                        end
 
-                        p=lsqnonlin(err,p0,[],[],fitoptions);
-
-                        forces = p(1:z); %get back the result from fitting
-                        alphas = p(z+1:z+z);
-                        fitError = err(p);
     %                     errstore = [errstore, fitError];
                         imgFit = joForceImg(z, forces, alphas, beta, fsigma, rm, px*(1/scaling), verbose); %generate an image with the fitted parameters
                         [gx,gy] = gradient(c_mask.*imgFit);
@@ -141,6 +171,7 @@ tF1=0.2;tF2=0.75;tF3=1.0;tF4=2.0;
                         pres(n).forces = forces;
                         pres(n).alphas= alphas;
                         pres(n).synthImg = imgFit;
+                        pres(n).g2 = g2_center;
                         pres1 = pres(n);
 
                         presAll(n,k).id = n;
@@ -170,18 +201,19 @@ tF1=0.2;tF2=0.75;tF3=1.0;tF4=2.0;
                         pCompare(k).forces = forces;
                         pCompare(k).betas = beta;
                         pCompare(k).alphas = alphas;
-                        pCompare(k).maskRsize = maskradius2pxsize;
+                        pCompare(k).maskRsize = rMask;
                         pCompare(k).synthImg = imgFit;
                         pCompare(k).sImgg2 = pres1.sImgg2;
 
-                        imwrite(template, [dirname3, 'img/raw.png']);
+                        imwrite(particle(n).forceImage, [dirname3, 'img/raw.png']);
+                        imwrite(c_mask.*template, [dirname3, 'img/processed.png']);
                         imwrite(imgFit, [dirname3, 'img/syn.png']);                       
-                        writetable(struct2table(rmfield(pres1,{'forceImage', 'synthImg'})), [[dirname3, 'csv/'], sprintf('%04d.csv', k)]); 
+                        writetable(struct2table(rmfield(pres1,{'forceImage', 'synthImg'}),'AsArray',true), [[dirname3, 'csv/'], sprintf('%04d.csv', k)]); 
                         save([[dirname3, 'mat/'], sprintf('%04d.mat', k)],'pres1');
 
 
                     end
-                    writetable(struct2table(rmfield(pCompare,'synthImg')), [dirname2, 'pixelError.csv']);
+                    writetable(struct2table(rmfield(pCompare,'synthImg'),'AsArray',true), [dirname2, 'pixelError.csv']);
                     [~, minI] = min([pCompare.fitError]);
                     pres(n).sImgg2 = pCompare(minI).sImgg2;
                     pres(n).forces = pCompare(minI).forces;
@@ -191,23 +223,30 @@ tF1=0.2;tF2=0.75;tF3=1.0;tF4=2.0;
                     pres(n).synthImg = pCompare(minI).synthImg;
                 end
             end
+            if (calibrate == true)
+                if ~exist([outdir, sprintf('maskR%1.2f_img/', rMask)], 'dir')
+                    mkdir([outdir, sprintf('maskR%1.2f_img/', rMask)])
+                end
+                imwrite(pres(n).synthImg, [outdir, sprintf('maskR%1.2f_img/', rMask), files(frame).name(1:end-4),'.png']);
+            end
         end
         
-        if ~exist([outdir, sprintf('maskR%1.2f_mat/', maskradius2pxsize)], 'dir')
-            mkdir([outdir, sprintf('maskR%1.2f_mat/', maskradius2pxsize)])
+        if ~exist([outdir, sprintf('maskR%1.2f_mat/', rMask)], 'dir')
+            mkdir([outdir, sprintf('maskR%1.2f_mat/', rMask)])
         end
-        save([[outdir, sprintf('maskR%1.2f_mat/', maskradius2pxsize)], files(frame).name(1:end-4), '.mat'],'pres');
+        save([[outdir, sprintf('maskR%1.2f_mat/', rMask)], files(frame).name(1:end-4), '.mat'],'pres');
         
-        if ~exist([outdir, sprintf('maskR%1.2f_csv/', maskradius2pxsize)], 'dir')
-            mkdir([outdir, sprintf('maskR%1.2f_csv/', maskradius2pxsize)])
+        if ~exist([outdir, sprintf('maskR%1.2f_csv/', rMask)], 'dir')
+            mkdir([outdir, sprintf('maskR%1.2f_csv/', rMask)])
         end       
         if (isfield(pres,'synthImg') == 1)
-            writetable(struct2table(rmfield(pres,{'synthImg', 'forceImage'})), [outdir, sprintf('maskR%1.2f_csv/', maskradius2pxsize),files(frame).name(1:end-4), '.csv']);
+            writetable(struct2table(rmfield(pres,{'synthImg', 'forceImage'}),'AsArray',true), [outdir, sprintf('maskR%1.2f_csv/', rMask),files(frame).name(1:end-4), '.csv']);
         end
-        if ~exist([outdir, sprintf('maskR%1.2f_matAll/', maskradius2pxsize)], 'dir')
-            mkdir([outdir, sprintf('maskR%1.2f_matAll/', maskradius2pxsize)])
+        
+        if ~exist([outdir, sprintf('maskR%1.2f_matAll/', rMask)], 'dir')
+            mkdir([outdir, sprintf('maskR%1.2f_matAll/', rMask)])
         end
-        save([[outdir, sprintf('maskR%1.2f_matAll/', maskradius2pxsize)], files(frame).name(1:end-4), '.mat'],'presAll');
+        save([[outdir, sprintf('maskR%1.2f_matAll/', rMask)], files(frame).name(1:end-4), '.mat'],'presAll');
         
 %         if ~exist([outdir, sprintf('maskR%1.2f_csvAll/', maskradius2pxsize)], 'dir')
 %             mkdir([outdir, sprintf('maskR%1.2f_csvAll/', maskradius2pxsize)])
@@ -216,4 +255,4 @@ tF1=0.2;tF2=0.75;tF3=1.0;tF4=2.0;
 %             writetable(struct2table(rmfield(presAll,{'synthImg', 'forceImage'})), [outdir, sprintf('maskR%1.2f_csv/', maskradius2pxsize),files(frame).name(1:end-4), '.csv']);        
 %         end
     end
-% end
+end

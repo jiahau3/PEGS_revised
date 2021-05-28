@@ -8,7 +8,7 @@
 
 % last edit on 2018/08/09 by Joshua Miller (jsmille9@ncsu.edu)
 
-% function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, conR, cG2Thrsd, ctrstL, ctrstH)
+function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, conR, cG2Thrsd, ctrstL, ctrstH)
 
     % close all % Housekeeping
     % clear all % Housekeeping
@@ -19,24 +19,24 @@
 
     verbose = true; %Generates lots of plots showing results
 
-imagepath = '../raw/172.png';
-centerdir = '../center/txt/';
-outputdir = '../s1_1set/'; 
-MeterPerpx = 0.008 / 98;
-g2cal = 3;
-fsigma = 290; 
-dtol = 4;     
-CR = 13; 
-contactG2Threshold = 0.20; 
-contrast_percent = [0.005, 0.995];
+% imagepath = '../raw/172.png';
+% centerdir = '../center/txt/';
+% outputdir = '../s1_1set/'; 
+%  = 0.008 / 98;
+% g2cal = 3;
+% fsigma = 290; 
+% dtol = 4;     
+% CR = 13; 
+% contactG2Threshold = 0.20; 
+% contrast_percent = [0.005, 0.995];
     
-%     MeterPerpx = Dm / Dpx;
-%     g2cal = g2guess; %Calibration Value for the g^2 method
-%     fsigma = FS; %photoelastic stress coefficient
-%     dtol = DT; % How far away can the outlines of 2 particles be to still be considered Neighbours
-%     CR = conR; %radius around a contactact point that is checked for contact validation
-%     contactG2Threshold = cG2Thrsd*CR^2; %sum of g2 in a contact area larger than this determines a valid contact
-%     contrast_percent = [ctrstL, ctrstH];
+    MeterPerpx = Dm / Dpx;
+    g2cal = g2guess; %Calibration Value for the g^2 method
+    fsigma = FS; %photoelastic stress coefficient
+    dtol = DT; % How far away can the outlines of 2 particles be to still be considered Neighbours
+    CR = conR; %radius around a contactact point that is checked for contact validation
+    contactG2Threshold = cG2Thrsd*CR^2; %sum of g2 in a contact area larger than this determines a valid contact
+    contrast_percent = [ctrstL, ctrstH];
     
 %     if nargin > 3
 %         MeterPerpx = Dm / Dpx;
@@ -146,8 +146,8 @@ contrast_percent = [0.005, 0.995];
 
         Gimg = im2double(Gimg);
         Rimg = im2double(Rimg);
-%         Gimg = Gimg-0.30*Rimg;
-%         Gimg = Gimg.*(Gimg > 0);
+        Gimg = Gimg-0.30*Rimg;
+        Gimg = Gimg.*(Gimg > 0);
         % Gimg = imadjust(Gimg,stretchlim(Gimg,[contrast_percent(1) contrast_percent(2)]));
     %     Rimg = imadjust(Rimg,[0.06 0.6],[]);
     %     Rimg = imgaussfilt(Rimg,0.5);
@@ -252,25 +252,25 @@ contrast_percent = [0.005, 0.995];
             %create a circular mask with a radius that is one pixel smaller
             %for cropping out the relevant gradient
 
-            mask2 = double(sqrt(mask) <= (r-0.2*r)-1);
+%             mask2 = double(sqrt(mask) <= (r-0.2*r)-1);
 
-            %Compute G^2 for each particle
-            se = strel('disk', 2);            
-            sigma = 2;
-%             particleImg = particleImg - 0.4;
-%             particleImg = imerode(particleImg, se);
-            particleImg = imdilate(particleImg.*mask2, se);
-            particleImg = imgaussfilt(particleImg, sigma);
+%             %Compute G^2 for each particle
+%             se = strel('disk', 2);            
+%             sigma = 2;
+% %             particleImg = particleImg - 0.4;
+% %             particleImg = imerode(particleImg, se);
+%             particleImg = imdilate(particleImg.*mask2, se);
+%             particleImg = imgaussfilt(particleImg, sigma);
 %             particleImg = imerode(particleImg, se);
 %             particleImg = imadjust(particleImg);
 %             particleImg = imgaussfilt(particleImg, 2);
 %             particleImg = imadjust(particleImg, stretchlim(particleImg, [0.1,0.9]));
-            [gx,gy] = gradient(particleImg);
-            g2 = (gx.^2 + gy.^2);
+%             [gx,gy] = gradient(particleImg);
+%             g2 = (gx.^2 + gy.^2);
 %             [gx,gy] = imgradient(particleImg);
 %             g2 = (gx.^2 + gy.^2);
-            particle(n).g2 = sum(sum(g2));
-            particle(n).f = particle(n).g2/g2cal;
+%             particle(n).g2 = sum(sum(g2));
+%             particle(n).f = particle(n).g2/g2cal;
         end
 
         if findNeighbours
@@ -355,4 +355,4 @@ contrast_percent = [0.005, 0.995];
         save([[outputdir, 'mat/'], files(frame).name(1:end-4),'.mat'],'particle');
         writetable(struct2table(rmfield(particle, 'forceImage'),'AsArray',true), [[outputdir, 'csv/'], files(frame).name(1:end-4),'.csv']);
     end
-% end
+end

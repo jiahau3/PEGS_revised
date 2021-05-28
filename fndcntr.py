@@ -25,7 +25,7 @@ for f in files:
 
         rows = Rimg.shape[0]
         circles = cv.HoughCircles(Rimg, cv.HOUGH_GRADIENT, 1, 90,
-                                   param1=100, param2=15,
+                                   param1=100, param2=18,
                                    minRadius=Rmin, maxRadius=Rmax)
 
         if circles is not None:
@@ -62,7 +62,7 @@ for f in files:
         ## [houghcircles]
         rows = Rimg.shape[0]
         circles = cv.HoughCircles(Rimg, cv.HOUGH_GRADIENT, 1, 90,
-                                   param1=100, param2=15,
+                                   param1=100, param2=18,
                                    minRadius=Rmin, maxRadius=Rmax)
 
         ## [draw]

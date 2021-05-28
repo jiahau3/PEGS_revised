@@ -22,6 +22,7 @@ function result = stress_calc(xxi, xxj, z, f, alpha, beta, fsigma, rm, E, nu, th
     oneoverpirm  = 1./(pi*rm);
     twooverpi    = 2./pi;
 
+    E = E * (1-nu^2);
     G = E/2/(1+nu);
 
     sigmaxx=0;

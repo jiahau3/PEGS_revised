@@ -1,5 +1,4 @@
 
-%joForceAdjMat
 
 %Compute adjacency matrices and some statistics on joDiscSolve output
 %derived from the joFroceAdjMat script as of 2016/08/12
@@ -10,12 +9,14 @@
 %Written by Jonathan Kollmer
 %Last update 2016/09/29
 
-% function ForceAdjMat(matpath, imgdir, outdir)
+function Uenergy(matpath, imgdir, outdir, E_starS, E_starL, Fc)
 
-matpath = '../s2_Optimized/maskR0.50_mat/*.mat';
-imgdir = '../raw/';
-outdir = '../s3_Optimized/';
-    E = 1.24172e6; % Young's modulus
+% matpath = '../synImg/maskR0.35_mat/*.mat';
+% imgdir = '../raw/';
+% outdir = '../Uenergy/';
+% E_starS = 3.76e6;
+% E_starL = 2.28e6;
+% Fc = 0.2;
     nu = 0.5; % Poisson's ratio
     thickness = 2e-3;
     inputdir = matpath(1:max(strfind(matpath, '/')));
@@ -141,10 +142,13 @@ outdir = '../s3_Optimized/';
                 forces = particle(n).forces; %get the force associated with each contact
                 alphas = particle(n).alphas; %get the alpha angle (direction of force) associated with each contact
                 %Calculate stress ditribution and energy
-                
-                elastic_energy = stress_distribution(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E, nu,thickness);
-                totEnergy = sum(sum(elastic_energy))*thickness;
-                
+                if (forces(1) < Fc)
+                    elastic_energy = stress_distribution(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E_starS, nu,thickness);
+                    totEnergy = sum(sum(elastic_energy))*thickness;
+                else
+                    elastic_energy = stress_distribution(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E_starL, nu,thickness);
+                    totEnergy = sum(sum(elastic_energy))*thickness;                    
+                end
                 x = floor(particle(n).x); %interger rounded x coordinate of the current particle
                 y = floor(particle(n).y); %interger rounded y coordinate of the current particle
                 sx = size(particle(n).synthImg,1)/2; %width of the synthetic force image of the current particle
@@ -287,4 +291,4 @@ outdir = '../s3_Optimized/';
     save(workspacefilename, 'allContacts');
     writetable(struct2table(rmfield(allContacts,'energydisp')), [[outputdir, 'csv/'], files(end).name(1:end-4), '.csv']);
 
-% end
+end

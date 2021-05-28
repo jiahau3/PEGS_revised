@@ -1,5 +1,4 @@
 
-%joForceAdjMat
 
 %Compute adjacency matrices and some statistics on joDiscSolve output
 %derived from the joFroceAdjMat script as of 2016/08/12
@@ -10,20 +9,22 @@
 %Written by Jonathan Kollmer
 %Last update 2016/09/29
 
-% function ForceAdjMat(matpath, imgdir, outdir)
+function ForceAdjMat(matpath, imgdir, outdir, E_starS, E_starL, Fc)
 
-matpath = '../s2_1set/maskR0.40_mat/140.mat';
-imgdir = '../raw/';
-outdir = '../s3_1set/';
-    E = 1.24172e6; % Young's modulus
+% matpath = '../s2/maskR0.45_mat/*.mat';
+% imgdir = '../raw/';
+% outdir = '../s3/';
+% E_starS = 3.76e6;
+% E_starL = 2.28e6;
+% Fc = 0.2;
     nu = 0.5; % Poisson's ratio
-    % U_mapping = 1.51368e9;
     thickness = 2e-3;
     inputdir = matpath(1:max(strfind(matpath, '/')));
     matname = matpath(max(strfind(matpath, '/'))+1:end);
 
     % close all %Housekeeping
     % clear all %Housekeeping
+
 
     files = dir([inputdir,matname]); %which files are we processing ?
     [~, index] = natsortfiles({files.name}); % Sorting files as increasing number
@@ -70,13 +71,13 @@ outdir = '../s3_1set/';
         if ~exist([outputdir, 'mat/'], 'dir') mkdir([outputdir, 'mat/']); end
         if ~exist([outputdir, 'png/'], 'dir') mkdir([outputdir, 'png/']); end
         if ~exist([outputdir, 'energy_img/'], 'dir') mkdir([outputdir, 'energy_img/']); end
-        if ~exist([outputdir, 'energy_array/'], 'dir') mkdir([outputdir, 'energy_array/']); end
+        if ~exist([outputdir, 'energy_array/'], 'dir') mkdir([outputdir, 'energy_array/']); end        
         if ~exist([outputdir, 'adjmatri/'], 'dir') mkdir([outputdir, 'adjmatri/']); end
         if ~exist([outputdir, 'csv/'], 'dir') mkdir([outputdir, 'csv/']); end
         workspacefilename =  [[outputdir, 'mat/'], files(cycle).name(1:end-4),'.mat']; 
         synthImgFilename = [[outputdir, 'png/'], files(cycle).name(1:end-4),'.png'];  %output filename 
         energyImgFilename = [[outputdir, 'energy_img/'], files(cycle).name(1:end-4),'.png'];  %output filename 
-        energyArrayFilename = [[outputdir, 'energy_array/'], files(cycle).name(1:end-4),'.txt'];  %output filename 
+        energyArrayFilename = [[outputdir, 'energy_array/'], files(cycle).name(1:end-4),'.txt'];  %output filename         
         adjMatAbsFilename = [[outputdir, 'adjmatri/'], files(cycle).name(1:end-4),'.txt'];  %output filename 
 
 
@@ -98,7 +99,7 @@ outdir = '../s3_1set/';
         img = imread(camImageFileName); %camera force image
         %img = imcrop(img,[xoffset, yoffset, xsize, ysize]); %particle image
         bigSynthImg = zeros(size(img,1),size(img,2)); %make an empty image with the same size as the camera image
-        bigEnergyImg = zeros(size(img,1),size(img,2));
+        bigEnergyImg = zeros(size(img,1),size(img,2));        
         for n=1:NN %for all particles
             %display(['fitting force(s) to particle ',num2str(n)]); %status indicator
             if (particle(n).z > 0 )
@@ -131,12 +132,6 @@ outdir = '../s3_1set/';
             err = particle(n).fitError; %get fit error 
 %             err = 1000;
             z = particle(n).z; %get coordination number
-%             if (n == 22)
-%                 z = 2;
-%             end
-%             if (n == 25)
-%                 z = 3;
-%             end
             r = particle(n).r; %get particle radius in pixel
             rm = particle(n).rm; %get particle radius in meters
             px = size(particle(n).forceImage,1);
@@ -147,47 +142,13 @@ outdir = '../s3_1set/';
                 forces = particle(n).forces; %get the force associated with each contact
                 alphas = particle(n).alphas; %get the alpha angle (direction of force) associated with each contact
                 %Calculate stress ditribution and energy
-                
-                elastic_energy = stress_distribution(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E, nu, thickness);
-                % elastic_energy = elastic_energy/U_mapping;
-                totEnergy = sum(sum(elastic_energy))*thickness;
-                
-                % s2 = s2map(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E, nu, thickness);
-                % tots2 = sum(sum(s2))*thickness;    
-                % tots2 = tots2/U_mapping;
-                
-                % s1 = s1map(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E, nu, thickness);
-                % tots1 = sum(sum(s1))*thickness;    
-                % tots1 = tots1/U_mapping;        
-                
-                % sr = srmap(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E, nu, thickness);
-                % totsr = sum(sum(sr))*thickness;    
-                % totsr = totsr/U_mapping;    
-                
-                % sx = sxmap(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E, nu, thickness);
-                % totsx = sum(sum(sx))*thickness;    
-                % totsx = totsx/U_mapping;    
-                
-                % sy = symap(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E, nu, thickness);
-                % totsy = sum(sum(sy))*thickness;    
-                % totsy = totsy/U_mapping;                    
-                
-                % sr2 = sr2map(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E, nu, thickness);
-                % totsr2 = sum(sum(sr2))*thickness;    
-                % totsr2 = totsr2/U_mapping;       
-                
-                % sx2 = sx2map(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E, nu, thickness);
-                % totsx2 = sum(sum(sx2))*thickness;    
-                % totsx2 = totsx2/U_mapping;             
-                
-                % sy2 = sy2map(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E, nu, thickness);
-                % totsy2 = sum(sum(sy2))*thickness;    
-                % totsy2 = totsy2/U_mapping;      
-                
-                % sxy2 = sxy2map(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E, nu, thickness);
-                % totsxy2 = sum(sum(sxy2))*thickness;    
-                % totsxy2 = totsxy2/U_mapping;               
-                
+                if (forces(1) < Fc)
+                    elastic_energy = stress_distribution(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E_starS, nu,thickness);
+                    totEnergy = sum(sum(elastic_energy))*thickness;
+                else
+                    elastic_energy = stress_distribution(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E_starL, nu,thickness);
+                    totEnergy = sum(sum(elastic_energy))*thickness;                    
+                end
                 x = floor(particle(n).x); %interger rounded x coordinate of the current particle
                 y = floor(particle(n).y); %interger rounded y coordinate of the current particle
                 sx = size(particle(n).synthImg,1)/2; %width of the synthetic force image of the current particle
@@ -195,11 +156,11 @@ outdir = '../s3_1set/';
 %                 rr=1*sx; %create a circular mask
 %                 [a,b]=meshgrid(-(sx-1):(sx),-(sy-1):(sy));
 %                 c_mask=((a.^2+b.^2)<=(rr)^2);      
-                % EImg = log(elastic_energy+(elastic_energy==0));
-                EImg = elastic_energy;
+                EImg = log(elastic_energy+(elastic_energy==0));
                 EImg = fliplr(EImg);
                 EImg = rot90(EImg,1);
-                bigEnergyImg(round(y-sy+1):round(y+sy),round(x-sx+1):round(x+sx)) = bigEnergyImg(round(y-sy+1):round(y+sy),round(x-sx+1):round(x+sx))+EImg;
+                % bigEnergyImg(round(y-sy+1):round(y+sy),round(x-sx+1):round(x+sx)) = bigEnergyImg(round(y-sy+1):round(y+sy),round(x-sx+1):round(x+sx))+EImg;
+                bigEnergyImg = EImg;
                 
                 for m=1:length(forces) %for each contact
                     
@@ -241,33 +202,11 @@ outdir = '../s3_1set/';
                         allContacts(aID).fTan = forces(m)*sin(alphas(m)); %tangential force
                         allContacts(aID).alpha = alphas(m);
                         allContacts(aID).beta = betas(m);
-                        allContacts(aID).contactX = round(r * cos(betas(m)) + particle(n).x);
-                        allContacts(aID).contactY = round(r * sin(betas(m)) + particle(n).y);
+                        allContacts(aID).contactX = round(r * cos(betas(m)-pi) + particle(n).x);
+                        allContacts(aID).contactY = round(r * sin(betas(m)-pi) + particle(n).y);
                         allContacts(aID).error = err;
-                        
-                        % allContacts(aID).s1 = s1;                        
-                        % allContacts(aID).s2 = s2; 
-                        % allContacts(aID).sr = sr;     
-                        % allContacts(aID).sx = sx;  
-                        % allContacts(aID).sy = sy;  
-                        % allContacts(aID).sr2 = sr2;  
-                        % allContacts(aID).sx2 = sx2;
-                        % allContacts(aID).sy2 = sy2;
-                        % allContacts(aID).sxy2 = sxy2;
-                        
                         allContacts(aID).energydisp = elastic_energy;
                         allContacts(aID).totenergy = totEnergy;
-                   
-                        % allContacts(aID).tots1 = tots1;                        
-                        % allContacts(aID).tots2 = tots2;
-                        % allContacts(aID).totsr = totsr;       
-                        % allContacts(aID).totsx = totsx;
-                        % allContacts(aID).totsy = totsy;
-                        % allContacts(aID).totsr2 = totsr2;                        
-                        % allContacts(aID).totsx2 = totsx2; 
-                        % allContacts(aID).totsy2 = totsy2; 
-                        % allContacts(aID).totsxy2 = totsxy2;                      
-
                         aID = aID+1;
                         
                         %build some adjacency matrices
@@ -281,7 +220,7 @@ outdir = '../s3_1set/';
                 end
             end
         end
-        
+
 
         %make sure our adjacency matrix is nice
         %discard singular contacts
@@ -295,16 +234,12 @@ outdir = '../s3_1set/';
         dlmwrite(adjMatAbsFilename, W, '\t'); 
         %write out the synthetic force image for the current frame
         imwrite(bigSynthImg,synthImgFilename);
-        
-%         imwrite(bigEnergyImg,energyImgFilename);
 
         f1 = figure('Visible','off');
-%         val_range = [0,0.0045];
         imagesc(bigEnergyImg); axis off; colormap(jet); colorbar;
         saveas(f1, energyImgFilename);
         
-        dlmwrite(energyArrayFilename,bigEnergyImg, '\t');
-
+        dlmwrite(energyArrayFilename,bigEnergyImg, '\t');        
 
         %Plot what we have learned so far
         if verbose
@@ -331,7 +266,7 @@ outdir = '../s3_1set/';
                 set(gca,'FontSize',fs);
                 title('camera image','FontSize',fs);
                 hold off;
-             figure(2)
+            figure(2)
                 %read and display the original image used as input to peDisc
                 %img = imcrop(imread(camImageFileName),[xoffset, yoffset, xsize, ysize]); %force image
                 img = bigSynthImg; %force image
@@ -346,14 +281,14 @@ outdir = '../s3_1set/';
                 set(gca,'FontSize',fs);
                 title('camera image','FontSize',fs);
                 hold off;
-             figure(3)
+            figure(3)
                 imagesc(W); 
                 colormap(jet);
         end
     end
 
-    % save everything
+    %save everything
     save(workspacefilename, 'allContacts');
     writetable(struct2table(rmfield(allContacts,'energydisp')), [[outputdir, 'csv/'], files(end).name(1:end-4), '.csv']);
 
-% end
+end
