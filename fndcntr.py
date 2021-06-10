@@ -4,14 +4,15 @@ import numpy as np
 from matplotlib import pyplot as plt
 Rmin = int(sys.argv[1])
 Rmax = int(sys.argv[2])
+circle_sensitivity = int(sys.argv[3])
 
 # Loads an image
-dirpath = sys.argv[3]
+dirpath = sys.argv[4]
 # dirpath = '../20200806/D_8mm_N3/1/'
-imgname = sys.argv[4]
+imgname = sys.argv[5]
 # imgname = '1_026g.png'
 imgfile = imgname
-outdir = sys.argv[5]
+outdir = sys.argv[6]
 files = os.listdir(dirpath)
 
 files.sort()
@@ -25,7 +26,7 @@ for f in files:
 
         rows = Rimg.shape[0]
         circles = cv.HoughCircles(Rimg, cv.HOUGH_GRADIENT, 1, 90,
-                                   param1=100, param2=18,
+                                   param1=100, param2=circle_sensitivity,
                                    minRadius=Rmin, maxRadius=Rmax)
 
         if circles is not None:
@@ -62,7 +63,7 @@ for f in files:
         ## [houghcircles]
         rows = Rimg.shape[0]
         circles = cv.HoughCircles(Rimg, cv.HOUGH_GRADIENT, 1, 90,
-                                   param1=100, param2=18,
+                                   param1=100, param2=circle_sensitivity,
                                    minRadius=Rmin, maxRadius=Rmax)
 
         ## [draw]

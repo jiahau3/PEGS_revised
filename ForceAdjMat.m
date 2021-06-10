@@ -1,22 +1,14 @@
 
 
-%Compute adjacency matrices and some statistics on joDiscSolve output
-%derived from the joFroceAdjMat script as of 2016/08/12
-%wich was derived from the joForceStat.m script as of 2016/07/13
 
-%works for the joDiscSolve output file format as of September 14 2016
+% function ForceAdjMat(matpath, imgdir, outdir, E_starS, E_starL, Fc)
 
-%Written by Jonathan Kollmer
-%Last update 2016/09/29
-
-function ForceAdjMat(matpath, imgdir, outdir, E_starS, E_starL, Fc)
-
-% matpath = '../s2/maskR0.45_mat/*.mat';
-% imgdir = '../raw/';
-% outdir = '../s3/';
-% E_starS = 3.76e6;
-% E_starL = 2.28e6;
-% Fc = 0.2;
+matpath = '../s2/maskR0.45_mat/001.mat';
+imgdir = '../raw/';
+outdir = '../s3/';
+E_starS = 3.76e6;
+E_starL = 2.28e6;
+Fc = 0.2;
     nu = 0.5; % Poisson's ratio
     thickness = 2e-3;
     inputdir = matpath(1:max(strfind(matpath, '/')));
@@ -142,7 +134,7 @@ function ForceAdjMat(matpath, imgdir, outdir, E_starS, E_starL, Fc)
                 forces = particle(n).forces; %get the force associated with each contact
                 alphas = particle(n).alphas; %get the alpha angle (direction of force) associated with each contact
                 %Calculate stress ditribution and energy
-                if (forces(1) < Fc)
+                if (sum(forces)/length(forces) < Fc)
                     elastic_energy = stress_distribution(z,forces, alphas, betas, particle(n).fsigma, rm, px, verbose, E_starS, nu,thickness);
                     totEnergy = sum(sum(elastic_energy))*thickness;
                 else
@@ -291,4 +283,4 @@ function ForceAdjMat(matpath, imgdir, outdir, E_starS, E_starL, Fc)
     save(workspacefilename, 'allContacts');
     writetable(struct2table(rmfield(allContacts,'energydisp')), [[outputdir, 'csv/'], files(end).name(1:end-4), '.csv']);
 
-end
+% end

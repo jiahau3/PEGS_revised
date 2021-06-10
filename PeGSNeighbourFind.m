@@ -1,9 +1,8 @@
-function [particle] = PeGSNeighbourFind(Gimg, contactG2Threshold, dtol, CR, verbose, particle)
+function [particle] = PeGSNeighbourFind(Gimg, contactG2Threshold, dtol, CR, verbose, particle, shift4calibration)
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 
 shift = 10;
-shift4calibration = 50;
 
 N = length(particle);
 

@@ -8,7 +8,7 @@
 
 % last edit on 2018/08/09 by Joshua Miller (jsmille9@ncsu.edu)
 
-function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, conR, cG2Thrsd, ctrstL, ctrstH)
+function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, conR, cG2Thrsd, ctrstL, ctrstH, shift4calibration)
 
     % close all % Housekeeping
     % clear all % Housekeeping
@@ -19,16 +19,17 @@ function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, c
 
     verbose = true; %Generates lots of plots showing results
 
-% imagepath = '../raw/172.png';
+% imagepath = '../raw/543.png';
 % centerdir = '../center/txt/';
-% outputdir = '../s1_1set/'; 
-%  = 0.008 / 98;
-% g2cal = 3;
-% fsigma = 290; 
-% dtol = 4;     
+% outputdir = '../s1/'; 
+% MeterPerpx = 0.008 / 100;
+% g2cal = 100;
+% fsigma = 6.25e4*2e-3; 
+% dtol = 2;     
 % CR = 13; 
-% contactG2Threshold = 0.20; 
+% contactG2Threshold = 0.0002; 
 % contrast_percent = [0.005, 0.995];
+% shift4calibration = 0;
     
     MeterPerpx = Dm / Dpx;
     g2cal = g2guess; %Calibration Value for the g^2 method
@@ -245,6 +246,9 @@ function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, c
             cropXstop = round(particle(n).x-r)+ size(mask1,1)-1;
             cropYstart = round(particle(n).y-r);
             cropYstop = round(particle(n).y-r)+ size(mask1,2)-1;
+            if (cropXstart || cropXstop || cropYstart || cropYstop <= 0)
+                continue
+            end
             cimg = im2double(Gimg(cropYstart:cropYstop, cropXstart:cropXstop));
             particleImg = cimg.*mask1;
             particle(n).forceImage=particleImg;
@@ -275,7 +279,7 @@ function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, c
 
         if findNeighbours
 
-            particle = PeGSNeighbourFind(Gimg, contactG2Threshold, dtol, CR, verbose, particle);
+            particle = PeGSNeighbourFind(Gimg, contactG2Threshold, dtol, CR, verbose, particle, shift4calibration);
 
         end
         
