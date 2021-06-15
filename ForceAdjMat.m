@@ -1,14 +1,14 @@
 
 
 
-% function ForceAdjMat(matpath, imgdir, outdir, E_starS, E_starL, Fc)
+function ForceAdjMat(matpath, imgdir, outdir, E_starS, E_starL, Fc)
 
-matpath = '../s2/maskR0.45_mat/001.mat';
-imgdir = '../raw/';
-outdir = '../s3/';
-E_starS = 3.76e6;
-E_starL = 2.28e6;
-Fc = 0.2;
+% matpath = '../test_opt_1set3_weightMax/maskR0.45_mat/001.mat';
+% imgdir = '../raw/';
+% outdir = '../Tout_opt_1set3_weight/';
+% E_starS = 3.76e6;
+% E_starL = 2.28e6;
+% Fc = 0.2;
     nu = 0.5; % Poisson's ratio
     thickness = 2e-3;
     inputdir = matpath(1:max(strfind(matpath, '/')));
@@ -283,4 +283,4 @@ Fc = 0.2;
     save(workspacefilename, 'allContacts');
     writetable(struct2table(rmfield(allContacts,'energydisp')), [[outputdir, 'csv/'], files(end).name(1:end-4), '.csv']);
 
-% end
+end

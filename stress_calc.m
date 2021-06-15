@@ -28,7 +28,7 @@ function result = stress_calc(xxi, xxj, z, f, alpha, beta, fsigma, rm, E, nu, th
     sigmaxx=0;
     sigmayy=0;
     sigmaxy=0;
-    sr=0;
+
     %double aa,a,b,b2,x1,y1,x2,y2,ch0,ch1,chn,costh1,r10,r11,r1n,th1,s1, s2,sr,th; %temporary
     for k=1:z
         b   = beta(k)+pi/2;        %rotate pi/2, to match input image     

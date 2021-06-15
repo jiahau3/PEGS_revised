@@ -10,20 +10,16 @@ function fndcntr { cd m; python3 fndcntr.py $r $R $CS ../raw/ $png ../$cntdir/; 
 function getcontact { cd m; matlab $mopt "getcontact('../raw/$png', '../$cntctInD/', '../$cntctOutD/',$Dm, $Dpx, $g2guess, $FS, $DT, $conR, $cG2Thrsd, $ctrstL, $ctrstH, $shift4calibration); quit"; cd ..; }
 function calForce { cd m; matlab $mopt "calForce('../$calFInD/$mat', '../$calFOutD/', $rMask, $tF1, $tF2, $tF3, $tF4, $g2_cal_a, $g2_cal_b, $exitX, $exitY, $D_arch2exit, $given_force, $calibrate, $optimization); quit"; cd ..; }
 function ForceAdjMat { cd m; matlab $mopt "ForceAdjMat('../$FadjInD/$mat','../raw/','../$FadjOutD/', $E_starS, $E_starL, $Fc); quit"; cd ..; }
-function synImgknownforce { cd m; matlab $mopt "synImgknownforce('../$synInD/$mat','../$synOutD/',$rMask); quit"; cd ..; }
-function Uenergy { cd m; matlab $mopt "Uenergy('../$UinD/$mat','../raw/','../$UoutD/', $E_starS, $E_starL, $Fc); quit"; cd ..; }
+
 function action { return; }
 
 ## default setting ##
 mopt="-nodesktop -nosplash -r"; 
 imgdir=4b_0043_30s_fps20; 
-r=48; R=52; CS=15; png=001.png; cntdir=center; 
-cntctInD=center/txt; cntctOutD=s1; Dm=0.008; Dpx=100; g2guess=100; FS=6.25e4*2e-3; DT=2; conR=13; cG2Thrsd=0.0002; ctrstL=0.005; ctrstH=0.995; shift4calibration=0;
-calFInD=s1/mat; calFOutD=s2; mat=001.mat; rMask=0.45; tF1=1.0; tF2=0.5; tF3=0.1; tF4=1.5; g2_cal_a=28; g2_cal_b=53; exitX=427; exitY=475; D_arch2exit=260; given_force=0; calibrate=0; optimization=1;
+r=48; R=52; CS=13; png=001.png; cntdir=center; 
+cntctInD=center/txt; cntctOutD=s1; Dm=0.008; Dpx=100; g2guess=100; FS=6.25e4*2e-3; DT=5; conR=10; cG2Thrsd=0.0001; ctrstL=0.005; ctrstH=0.995; shift4calibration=0;
+calFInD=s1/mat; calFOutD=s2; mat=001.mat; rMask=0.45; tF1=1.0; tF2=2.0; tF3=0.0; tF4=0.0; g2_cal_a=90/0.88; g2_cal_b=0; exitX=427; exitY=475; D_arch2exit=260; given_force=0; calibrate=0; optimization=1;
 FadjInD=s2/maskR${rMask}_mat; FadjOutD=s3;
-synInD=s1/mat;
-synOutD=synImg;
-UinD=synImg/maskR${rMask}_mat; UoutD=Uenergy;
 E_starS=3.76e6;
 E_starL=2.28e6;
 Fc=0.20;
@@ -45,7 +41,6 @@ while true; do case $1 in
       -ctrstH)   ctrstH=$2        shift 2;;
 -shift4calibration) shift4calibration=$2 shift 2;;
      -calFInD)   calFInD=$2;      shift 2;;  # .mat file directory in stage 1 directory
-      -synInD)   synInD=$2;       shift 2;;
          -mat)   mat=$2;          shift 2;;  # .mat filename
        -rMask)   rMask=$2;        shift 2;;  # ratio of mask radius to whole disk
     -tF)   shift; tF1=$1; tF2=$2; tF3=$3; tF4=$4;     shift 4;;  # adjust initial force for contact points > 2
@@ -58,11 +53,8 @@ while true; do case $1 in
    -calibrate)   calibrate=$2;    shift 2;;
 -optimization)   optimization=$2  shift 2;;
     -calFOutD)   calFOutD=$2;     shift 2;;  # create directory for disk information (stage 2) (containing force images for each disk)
-     -synOutD)   synOutD=$2;      shift 2;;
      -FadjInD)   FadjInD=$2;      shift 2;;  # .mat file directory in stage 2 directory
-        -UinD)   UinD=$2;         shift 2;;
     -FadjOutD)   FadjOutD=$2;     shift 2;;  # create directory for disk information (stage 3) 
-       -UoutD)   UoutD=$2;        shift 2;;
      -E_starS)   E_starS=$2;      shift 2;;
      -E_starL)   E_starL=$2;      shift 2;;
           -Fc)   Fc=$2;           shift 2;;
@@ -83,8 +75,6 @@ while true; do case $1 in
       getcontact)  getcontact;      shift  ;;
         calForce)  calForce;        shift  ;;
      ForceAdjMat)  ForceAdjMat;     shift  ;;
-synImgknownforce)  synImgknownforce shift  ;;
-         Uenergy)  Uenergy          shift  ;;
           action)  action;          shift  ;;
                *) break;;
    esac

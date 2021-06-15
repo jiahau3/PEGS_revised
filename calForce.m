@@ -1,18 +1,19 @@
 function calForce(matpath, outdir, rMask, tF1, tF2, tF3, tF4, g2_cal_a, g2_cal_b, exitX, exitY, D_arch2exit, given_force, calibrate, optimization) 
-% matpath='../s1/mat/*.mat';
-% outdir='../synImg/';
+% matpath='../s1/mat/001.mat';
+% outdir='../test_opt_1set3_weightMax/';
 % rMask=0.45;
-% tF1=1.0;tF2=0.0;tF3=0.0;tF4=0.0;
-% g2_cal_a = 28;
-% g2_cal_b = 53;
-% exitX=457;
-% exitY=380;
-% D_arch2exit = 2800;
-% given_force = 1;
-% calibrate = 1;
-% optimization  = 0;
+% tF1=3.0;tF2=0.0;tF3=0.0;tF4=0.0;
+% g2_cal_a = 80/0.88; % [g^2]/[N]
+% g2_cal_b = 0;
+% exitX=427;
+% exitY=475;
+% D_arch2exit = 260;
+% given_force = 0;
+% calibrate = 0;
+% optimization  = 1;
 
     
+
     tF=[tF1,tF2,tF3,tF4];   
     if (nnz(tF) == 1)
         tF = tF1;
@@ -37,7 +38,7 @@ function calForce(matpath, outdir, rMask, tF1, tF2, tF3, tF4, g2_cal_a, g2_cal_b
 
     scaling = 1; %scale the image by this factor before doing the fit
     verbose = true; 
-    fitoptions = optimoptions('lsqnonlin','Algorithm','levenberg-marquardt','MaxIter',100,'MaxFunEvals',400,'TolFun',0.005,'Display','final-detailed');
+    fitoptions = optimoptions('lsqnonlin','Algorithm','levenberg-marquardt','MaxIter',100,'MaxFunEvals',400,'TolFun',0.001,'Display','final-detailed');
 
     nFrames = length(files); %how many files are we processing ?
     for frame = 1:nFrames %loop over these frames 
@@ -53,13 +54,12 @@ function calForce(matpath, outdir, rMask, tF1, tF2, tF3, tF4, g2_cal_a, g2_cal_b
         if ~exist(dirname1, 'dir') mkdir(dirname1); end
         
 %         disp(['processing file ',fileName, ' containing ' ,num2str(N), ' particles']); %status indicator
-        for n=1:N    tF=[tF1,tF2,tF3,tF4];
+        for n=1:N
             if sqrt((particle(n).x - exitX)^2 + (particle(n).y - exitY)^2) < D_arch2exit
                 clearvars pCompare;
                 clearvars pres1;
     %             disp(['fitting force(s) to particle ',num2str(n)]); %status indicator
                 if (particle(n).z > 0 )
-
                     fsigma = particle(n).fsigma;
                     rm = particle(n).rm;
                     template = particle(n).forceImage;
@@ -72,7 +72,6 @@ function calForce(matpath, outdir, rMask, tF1, tF2, tF3, tF4, g2_cal_a, g2_cal_b
 %                     template = imdilate(template, se);
                     template = imgaussfilt(template, sigma);
                     px = size(template,1); %size of the force image
-
                     if verbose
                         % f1 = figure('Visible', 'off'); 
                         % template1 = uint8(255 * mat2gray(template));
@@ -81,7 +80,6 @@ function calForce(matpath, outdir, rMask, tF1, tF2, tF3, tF4, g2_cal_a, g2_cal_b
                         % pbaspect(ax1, [1 0.9 1]);
                         % axis off;
                     end
-
                     z = particle(n).z; NumOfCombination=ntF^z;  % disp(NumOfCombination); return;
                     forces = zeros(z,1);
                     cg2s = sum(particle(n).contactG2s);
@@ -89,7 +87,6 @@ function calForce(matpath, outdir, rMask, tF1, tF2, tF3, tF4, g2_cal_a, g2_cal_b
                     if ~exist(dirname2, 'dir')
                         mkdir(dirname2)
                     end          
-
                     k=1;
                     for t5=1:ntF for t4=1:ntF for t3=1:ntF for t2=1:ntF for t1=1:ntF
                         tS(k,1)=tF(t1);tS(k,2)=tF(t2);tS(k,3)=tF(t3);tS(k,4)=tF(t4);tS(k,5)=tF(t5);
@@ -109,9 +106,9 @@ function calForce(matpath, outdir, rMask, tF1, tF2, tF3, tF4, g2_cal_a, g2_cal_b
                     cx=px/2;cy=px/2;ix=px;iy=px;r=rMask*px; %create a circular mask
                     [x,y]=meshgrid(-(cx-1):(ix-cx),-(cy-1):(iy-cy));
                     c_mask=((x.^2+y.^2)<=r^2-1);
-                    [gx1,gy1] = gradient(c_mask.*template);
-                    g21 = (gx1.^2 + gy1.^2);
-                    g2_center = sum(sum(g21));
+                    % [gx1,gy1] = gradient(c_mask.*template);
+                    % g21 = (gx1.^2 + gy1.^2);
+                    % g2_center = sum(sum(g21));
                     
                     for k=1:NumOfCombination
                         dirname3 = [dirname2, sprintf('%04d', k), '/'];
@@ -127,7 +124,7 @@ function calForce(matpath, outdir, rMask, tF1, tF2, tF3, tF4, g2_cal_a, g2_cal_b
                             end
                         else
                             for i=1:z
-                                forces(i) = tS(k,i)*(g2_center-g2_cal_b)/g2_cal_a*particle(n).contactG2s(i)/cg2s;
+                                forces(i) = tS(k,i)*(particle(n).g2-g2_cal_b)/g2_cal_a*particle(n).contactG2s(i)/cg2s;
                             end
                         end
 
@@ -137,7 +134,7 @@ function calForce(matpath, outdir, rMask, tF1, tF2, tF3, tF4, g2_cal_a, g2_cal_b
 
                         % cx=px/2;cy=px/2;ix=px;iy=px;
                         % r = particle(n).r;
-                        % maskR = maskradius2pxsize*r;
+                        % maskR = maskradius2pxsize*r;[0.446940883540157,0.238812162754233,0.561448596751543,0.253990740185760]
                         % xyr=[(r-maskR)*cos(beta)', (r-maskR)*sin(beta)', zeros(z,1)+(maskR-5)];
                         % xyr=permute(xyr, [3, 2, 1]);
                         % [x,y]=meshgrid(-(cx-1):(ix-cx),-(cy-1):(iy-cy));
@@ -171,7 +168,7 @@ function calForce(matpath, outdir, rMask, tF1, tF2, tF3, tF4, g2_cal_a, g2_cal_b
                         pres(n).forces = forces;
                         pres(n).alphas= alphas;
                         pres(n).synthImg = imgFit;
-                        pres(n).g2 = g2_center;
+                        % pres(n).g2 = g2_center;
                         pres1 = pres(n);
 
                         presAll(n,k).id = n;

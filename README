@@ -1,0 +1,18 @@
+# Read the .csv file from s3.
+# Store xyt information into each frame file
+# csv variable stores the name of csv file
+csv=filename of csv
+[[ -d tmp ]] || mkdir tmp
+awk -F, 'NR>1{fn=sprintf("tmp/%03d",$1);print $4,$5,$1 > fn}' $csv; ls tmp/* | parallel -I% sort -u % -o %
+
+# Use track_v2.sh to generate consistent xyt for each disk
+track_v2.sh tmp/*
+
+# Use getDiskForce.sh for retrieving the information of disk
+getDiskForce.sh $csv
+
+# Use getTXYF.sh to get force information
+getTXYF.sh
+
+# Calculate net Force and torque for each disk by netForce_torq.sh
+netForce_torq.sh

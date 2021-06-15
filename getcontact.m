@@ -19,15 +19,15 @@ function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, c
 
     verbose = true; %Generates lots of plots showing results
 
-% imagepath = '../raw/543.png';
+% imagepath = '../raw/001.png';
 % centerdir = '../center/txt/';
-% outputdir = '../s1/'; 
+% outputdir = '../check_g2/'; 
 % MeterPerpx = 0.008 / 100;
 % g2cal = 100;
 % fsigma = 6.25e4*2e-3; 
-% dtol = 2;     
-% CR = 13; 
-% contactG2Threshold = 0.0002; 
+% dtol = 5;     
+% CR = 10; 
+% contactG2Threshold = 0.0001; 
 % contrast_percent = [0.005, 0.995];
 % shift4calibration = 0;
     
@@ -240,18 +240,28 @@ function getcontact(imagepath, centerdir, outputdir, Dm, Dpx, g2guess, FS, DT, c
             mask = abs(-r:r);
             mask = mask.^2 + mask.^2';
             mask1 = double(sqrt(mask) <= r);
+            mask2 = double(sqrt(mask) <= r*0.9-1);
 
             %This crops out a particle
             cropXstart = round(particle(n).x-r);
             cropXstop = round(particle(n).x-r)+ size(mask1,1)-1;
             cropYstart = round(particle(n).y-r);
             cropYstop = round(particle(n).y-r)+ size(mask1,2)-1;
-            if (cropXstart || cropXstop || cropYstart || cropYstop <= 0)
+            if (cropXstart <= 0 || cropXstop <= 0 || cropYstart  <= 0 || cropYstop <= 0)
                 continue
             end
             cimg = im2double(Gimg(cropYstart:cropYstop, cropXstart:cropXstop));
             particleImg = cimg.*mask1;
             particle(n).forceImage=particleImg;
+
+            se = strel('disk', 2);
+            sigma = 1;
+            template = imadjust(particleImg, stretchlim(particleImg, [0.05,0.95]));
+            template = imgaussfilt(template, sigma);
+            [gx,gy] = gradient(mask2.*template);
+            g2 = (gx.^2 + gy.^2);
+            particle(n).g2 = sum(sum(g2));
+
 
             %create a circular mask with a radius that is one pixel smaller
             %for cropping out the relevant gradient

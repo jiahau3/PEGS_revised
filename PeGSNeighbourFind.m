@@ -68,8 +68,8 @@ for l = 1:length(f1)
         %Plot contact area
         if (verbose)
             % display(['contact found between particles ',num2str(f1(l)),' and ',num2str(f2(l))]);
-            viscircles([contactXp1-shift*cos(atan2(y2-y1,x2-x1)); contactYp1-shift*sin(atan2(y2-y1,x2-x1))]', CR,'LineWidth', 1,'EdgeColor','y');
-            viscircles([contactXp2+shift*cos(atan2(y2-y1,x2-x1)); contactYp2+shift*sin(atan2(y2-y1,x2-x1))]', CR,'LineWidth', 1,'EdgeColor','y');
+            viscircles([contactXp1-shift*cos(atan2(y2-y1,x2-x1)); contactYp1-shift*sin(atan2(y2-y1,x2-x1))]', CR,'LineWidth', 1,'LineStyle',':','EdgeColor','y');
+            viscircles([contactXp2+shift*cos(atan2(y2-y1,x2-x1)); contactYp2+shift*sin(atan2(y2-y1,x2-x1))]', CR,'LineWidth', 1,'LineStyle',':','EdgeColor','y');
             text(contactXp1-shift*cos(atan2(y2-y1,x2-x1)), contactYp1-shift*sin(atan2(y2-y1,x2-x1)),sprintf("%1.2f",contactG2p1),'FontSize',6,'Color','y');
             text(contactXp2+shift*cos(atan2(y2-y1,x2-x1)), contactYp2+shift*sin(atan2(y2-y1,x2-x1)),sprintf("%1.2f",contactG2p2),'FontSize',6,'Color','y');
             %drawnow;
@@ -125,7 +125,7 @@ for l = 1:length(lwi) %Runs through each index to check for contacts via gradien
         %this is a valid contact, remember it
         if(verbose)
             text(contactX+shift,contactY,sprintf("%1.2f",contactG2),'FontSize',6,'Color','y');
-            viscircles([contactX+shift; contactY]', CR,'LineWidth', 1,'EdgeColor','y');
+            viscircles([contactX+shift; contactY]', CR,'LineWidth', 1,'LineStyle',':','EdgeColor','y');
         end
         particle(lwi(l)).z= particle(lwi(l)).z +1; %increase coordination number
         particle(lwi(l)).contactG2s(particle(lwi(l)).z)=contactG2;
@@ -156,7 +156,7 @@ for l = 1:length(rwi)
         %this is a valid contact, remember it
         if(verbose)
             text(contactX-shift,contactY,sprintf("%1.2f",contactG2),'FontSize',6,'Color','y');
-            viscircles([contactX-shift; contactY]', CR,'LineWidth', 1,'EdgeColor','y');
+            viscircles([contactX-shift; contactY]', CR,'LineWidth', 1,'LineStyle',':','EdgeColor','y');
         end
         particle(rwi(l)).z= particle(rwi(l)).z +1; %increase coordination number
         particle(rwi(l)).contactG2s(particle(rwi(l)).z)=contactG2;
@@ -187,7 +187,7 @@ for l = 1:length(twi)
         %this is a valid contact, remember it
         if(verbose)
             text(contactX,contactY+shift,sprintf("%1.2f",contactG2),'FontSize',6,'Color','y');
-            viscircles([contactX; contactY+shift]', CR,'LineWidth', 1,'EdgeColor','y');
+            viscircles([contactX; contactY+shift]', CR,'LineWidth', 1,'LineStyle',':','EdgeColor','y');
         end
         particle(twi(l)).z= particle(twi(l)).z +1; %increase coordination number
         particle(twi(l)).contactG2s(particle(twi(l)).z)=contactG2;
@@ -218,7 +218,7 @@ for l = 1:length(bwi)
         %this is a valid contact, remember it
         if(verbose)
             text(contactX,contactY-shift,sprintf("%1.2f",contactG2),'FontSize',6,'Color','y');
-            viscircles([contactX; contactY-shift]', CR,'LineWidth', 1,'EdgeColor','y');
+            viscircles([contactX; contactY-shift]', CR,'LineWidth', 1,'LineStyle',':','EdgeColor','y');
         end
         particle(bwi(l)).z= particle(bwi(l)).z +1; %increase coordination number
         particle(bwi(l)).contactG2s(particle(bwi(l)).z)=contactG2;
